@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+import sys
+
+# Add utils to path for imports
+sys.path.append(str(Path(__file__).parent))
 
 # Initialize session state
 if 'conversion_history' not in st.session_state:
@@ -20,55 +24,119 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Sidebar info
+# Sidebar
 st.sidebar.title("📊 File Converter")
-st.sidebar.info(
-    """This app converts between 20+ file formats 
-    with advanced options for handling various 
-    data scenarios and edge cases."""
-)
+st.sidebar.markdown("""
+**Supported Formats:**
+• CSV, TSV, TXT
+• Excel (.xlsx, .xls)
+• JSON (all orientations)
+• Parquet, Feather
+• HDF5, Pickle
+• SQL Databases
 
-# Main title
-st.title("🐼 File Format Converter")
-st.write("Convert files between multiple formats with advanced options")
-
-# Statistics
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Total Conversions", len(st.session_state.conversion_history))
-with col2:
-    st.metric("Supported Formats", "20+")
-with col3:
-    st.metric("Max File Size", "500 MB")
-with col4:
-    st.metric("Encoding Support", "Auto-detect")
-
-# Features section
-st.markdown("---")
-st.subheader("✨ Features")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.write("**🔄 Multiple Converters**")
-    st.write("• CSV/Text
-• Excel
-• JSON
-• Parquet
-• SQL")
-
-with col2:
-    st.write("**⚙️ Advanced Options**")
-    st.write("• Auto encoding
-• Custom delimiters
+**Features:**
+• Auto encoding detection
+• Batch conversion
 • Data preview
-• Validation")
+• Conversion history
+""")
 
-with col3:
-    st.write("**📦 Production Ready**")
-    st.write("• Error handling
-• History tracking
-• Batch processing
-• Cloud ready")
+# Main page
+st.title("🐼 File Format Converter")
+st.markdown("""
+Convert files between multiple formats with advanced options:
+- **CSV/Text** ↔ Excel ↔ JSON ↔ Parquet ↔ Feather ↔ SQL
+- Auto encoding detection
+- Batch processing  
+- Data preview & validation
+""")
 
+# Show conversion history
+if st.session_state.conversion_history:
+    st.sidebar.subheader("📈 Conversion History")
+    for i, conv in enumerate(reversed(st.session_state.conversion_history[-5:]), 1):
+        st.sidebar.markdown(f"**{i}.** {conv['input']} → {conv['output']} ({conv.get('rows', 0)} rows)")
+
+# Navigation
 st.markdown("---")
-st.info("👈 Select a converter from the sidebar to get started!")
+tab1, tab2, tab3 = st.tabs(["📁 Quick Start", "🚀 Features", "📋 Next Steps"])
+
+with tab1:
+    st.header("Get Started in 3 Steps")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        **1. Upload File**
+        - Drag & drop or click
+        - Supports 20+ formats
+        - Auto-detects encoding
+        """)
+    
+    with col2:
+        st.markdown("""
+        **2. Configure Options**
+        - Delimiter, encoding
+        - Data types, headers
+        - Preview first 5 rows
+        """)
+    
+    with col3:
+        st.markdown("""
+        **3. Convert & Download**
+        - One-click conversion
+        - Multiple output formats
+        - Track in history
+        """)
+
+with tab2:
+    st.header("Production-Ready Features")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### Input Handling
+        - ✅ Auto encoding detection
+        - ✅ Multiple delimiters
+        - ✅ Skip rows/headers
+        - ✅ Data type mapping
+        - ✅ Missing value handling
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### Output Options
+        - ✅ CSV, Excel, JSON
+        - ✅ Parquet, Feather, HDF5
+        - ✅ SQL databases
+        - ✅ Batch processing
+        - ✅ Compression options
+        """)
+
+with tab3:
+    st.header("Implementation Status")
+    st.markdown("""
+    **✅ Ready to implement:**
+    1. Create project folder: `file_converter_app/`
+    2. Copy `requirements.txt` (fixed for Python 3.13)
+    3. Create `pages/` folder with 8 converter pages
+    4. Create `utils/` folder with 5 utility modules
+    5. Test locally: `streamlit run app.py`
+    6. Deploy to Streamlit Cloud
+    
+    **Next:** Start with CSV converter page!
+    """)
+
+# Footer
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #666;'>
+        🐼 Production-ready file converter | 
+        <a href='https://share.streamlit.io'>Deployed on Streamlit Cloud</a>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
