@@ -17,6 +17,15 @@ if "conversion_history" not in st.session_state:
 if "file_bytes" not in st.session_state:
     st.session_state.file_bytes = None
 
+if "current_df" not in st.session_state:
+    st.session_state.current_df = None
+
+if "preview_df" not in st.session_state:
+    st.session_state.preview_df = None
+
+if "file_info" not in st.session_state:
+    st.session_state.file_info = {}
+
 # File upload
 uploaded_file = st.file_uploader(
     "Upload CSV, TSV, or text file",
@@ -27,13 +36,16 @@ uploaded_file = st.file_uploader(
 # Persist uploaded file bytes so reruns still have full content
 if uploaded_file is not None:
     st.session_state.file_bytes = uploaded_file.getvalue()
+    st.session_state.file_info["name"] = uploaded_file.name
 
 if st.session_state.file_bytes is not None:
     # Recreate a file-like object from bytes for each read
     file_buffer = BytesIO(st.session_state.file_bytes)
     file_size = len(st.session_state.file_bytes)
-    st.info(f"📁 File: **{uploaded_file.name if uploaded_file else 'uploaded_file'}** | "
-            f"Size: **{file_size/1024:.1f} KB**")
+    st.info(
+        f"📁 File: **{st.session_state.file_info.get('name', 'uploaded_file')}** | "
+        f"Size: **{file_size/1024:.1f} KB**"
+    )
 
     # Configuration - 3 columns
     col1, col2, col3 = st.columns(3)
@@ -43,7 +55,7 @@ if st.session_state.file_bytes is not None:
         delimiter_type = st.radio(
             "Delimiter Type",
             ["Common", "Custom"],
-            horizontal=True
+            horizontal=True,
         )
 
         if delimiter_type == "Common":
@@ -51,7 +63,7 @@ if st.session_state.file_bytes is not None:
                 "Select delimiter",
                 [",", "\t", ";", "|", ":", " ", "\\n"],
                 index=0,
-                format_func=lambda x: f"{x} ({'tab' if x == '\t' else x})"
+                format_func=lambda x: f"{x} ({'tab' if x == '\t' else x})",
             )
             if delimiter == "\\n":
                 delimiter = "\n"
@@ -61,7 +73,7 @@ if st.session_state.file_bytes is not None:
                 "Enter custom delimiter (single character)",
                 placeholder="e.g. ~, #, ^",
                 max_chars=1,
-                help="Enter exactly one character"
+                help="Enter exactly one character",
             )
             delimiter = manual_delimiter if manual_delimiter else ","
 
@@ -69,7 +81,7 @@ if st.session_state.file_bytes is not None:
         encoding = st.selectbox(
             "Encoding",
             ["utf-8", "latin-1", "iso-8859-1", "cp1252", "utf-16"],
-            index=0
+            index=0,
         )
 
         header_option = st.radio(
@@ -84,8 +96,7 @@ if st.session_state.file_bytes is not None:
         elif header_option == "No header":
             header = None
         else:  # "Row number"
-            # Treat first column as index later if needed; for now keep header row
-            header = 0
+            header = 0  # keep as header row; use index later if needed
 
     with col3:
         skip_rows = st.number_input(
@@ -134,11 +145,10 @@ if st.session_state.file_bytes is not None:
     except Exception:
         dtype_dict = None
 
-    # ---------- PREVIEW ----------
+    # ---------- PREVIEW (top section) ----------
     if st.button("👁️ Preview Data", type="primary"):
         with st.spinner("Reading file for preview..."):
             try:
-                # Use a fresh buffer for each read
                 file_buffer.seek(0)
                 df_preview = pd.read_csv(
                     file_buffer,
@@ -154,18 +164,21 @@ if st.session_state.file_bytes is not None:
                 )
 
                 st.session_state.preview_df = df_preview
-                st.session_state.file_info = {
-                    "name": uploaded_file.name if uploaded_file else "uploaded_file",
-                    "rows": len(df_preview),
-                    "cols": len(df_preview.columns),
-                    "delimiter": delimiter,
-                    "encoding": encoding,
-                }
+                st.session_state.file_info.update(
+                    {
+                        "rows": len(df_preview),
+                        "cols": len(df_preview.columns),
+                        "delimiter": delimiter,
+                        "encoding": encoding,
+                    }
+                )
 
                 st.success(
                     f"✅ Preview loaded: {len(df_preview)} rows × {len(df_preview.columns)} columns"
                 )
-                st.dataframe(df_preview.head(int(preview_rows)), use_container_width=True)
+                st.dataframe(
+                    df_preview.head(int(preview_rows)), use_container_width=True
+                )
 
                 col1_m, col2_m, col3_m, col4_m = st.columns(4)
                 col1_m.metric("Preview rows", len(df_preview))
@@ -178,9 +191,11 @@ if st.session_state.file_bytes is not None:
 
             except Exception as e:
                 st.error(f"❌ Error reading file: **{str(e)}**")
-                st.info("💡 Try different delimiter, encoding, or check advanced options")
+                st.info(
+                    "💡 Try different delimiter, encoding, or check advanced options"
+                )
 
-    # ---------- CONVERSION ----------
+    # ---------- CONVERSION & PREVIEW ----------
     st.markdown("---")
     st.subheader("📥 Convert & Download")
 
@@ -222,11 +237,8 @@ if st.session_state.file_bytes is not None:
             )
 
             st.session_state.current_df = df_full
-            if "file_info" not in st.session_state:
-                st.session_state.file_info = {}
             st.session_state.file_info.update(
                 {
-                    "name": uploaded_file.name if uploaded_file else "uploaded_file",
                     "rows": len(df_full),
                     "cols": len(df_full.columns),
                     "delimiter": delimiter,
@@ -234,6 +246,25 @@ if st.session_state.file_bytes is not None:
                 }
             )
 
+            # --- Preview in Convert section ---
+            st.success(
+                f"✅ Full data loaded: {len(df_full)} rows × {len(df_full.columns)} columns"
+            )
+            st.markdown("**Preview of converted data:**")
+            st.dataframe(
+                df_full.head(int(preview_rows)), use_container_width=True
+            )
+
+            col1_c, col2_c, col3_c, col4_c = st.columns(4)
+            col1_c.metric("Total rows", len(df_full))
+            col2_c.metric("Columns", len(df_full.columns))
+            col3_c.metric(
+                "Memory",
+                f"{df_full.memory_usage(deep=True).sum() / 1024:.1f} KB",
+            )
+            col4_c.metric("Non-null", f"{df_full.count().sum()}")
+
+            # --- Build output for download ---
             output = BytesIO()
 
             if output_format == "csv":
