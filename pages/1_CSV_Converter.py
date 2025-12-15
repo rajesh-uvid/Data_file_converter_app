@@ -47,7 +47,9 @@ if st.session_state.file_bytes is not None:
         f"Size: **{file_size/1024:.1f} KB**"
     )
 
-    # Configuration - 3 columns
+    # =======================
+    #  COMMON CONFIG WIDGETS
+    # =======================
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -96,7 +98,7 @@ if st.session_state.file_bytes is not None:
         elif header_option == "No header":
             header = None
         else:  # "Row number"
-            header = 0  # keep as header row; use index later if needed
+            header = 0  # keep as header row; could later treat first col as index
 
     with col3:
         skip_rows = st.number_input(
@@ -106,7 +108,7 @@ if st.session_state.file_bytes is not None:
             "Preview rows", min_value=1, max_value=50, value=10, step=1
         )
 
-    # Advanced options expander
+    # Advanced options expander (used by BOTH preview and convert)
     with st.expander("⚙️ Advanced Options", expanded=False):
         col1_adv, col2_adv, col3_adv = st.columns(3)
 
@@ -133,7 +135,7 @@ if st.session_state.file_bytes is not None:
                 "Decimal separator", value=".", max_chars=1
             )
 
-    # Convert options to parameters
+    # Convert advanced options to parameters
     try:
         na_values = [v.strip() for v in na_values if v.strip()]
         dtype_dict = {}
@@ -145,7 +147,9 @@ if st.session_state.file_bytes is not None:
     except Exception:
         dtype_dict = None
 
-    # ---------- PREVIEW (top section) ----------
+    # =======================
+    #  PREVIEW SECTION
+    # =======================
     if st.button("👁️ Preview Data", type="primary"):
         with st.spinner("Reading file for preview..."):
             try:
@@ -157,6 +161,7 @@ if st.session_state.file_bytes is not None:
                     header=header,
                     skiprows=skip_rows,
                     na_values=na_values,
+                    keep_default_na=False,
                     dtype=dtype_dict or None,
                     nrows=int(preview_rows) + 5,  # only for preview
                     thousands="," if thousands_sep else None,
@@ -166,7 +171,7 @@ if st.session_state.file_bytes is not None:
                 st.session_state.preview_df = df_preview
                 st.session_state.file_info.update(
                     {
-                        "rows": len(df_preview),
+                        "rows_preview": len(df_preview),
                         "cols": len(df_preview.columns),
                         "delimiter": delimiter,
                         "encoding": encoding,
@@ -195,28 +200,22 @@ if st.session_state.file_bytes is not None:
                     "💡 Try different delimiter, encoding, or check advanced options"
                 )
 
-    # ---------- CONVERSION & PREVIEW ----------
+    # =======================
+    #  CONVERT & DOWNLOAD
+    # =======================
     st.markdown("---")
     st.subheader("📥 Convert & Download")
 
-    col1_conv, col2_conv = st.columns([1, 2])
+    col1_conv, _ = st.columns([1, 2])
 
     with col1_conv:
+        # default index=1 -> "excel"
         output_format = st.selectbox(
             "Output format",
             ["csv", "excel", "json", "parquet"],
+            index=1,  # Excel by default
             help="Parquet requires pyarrow/fastparquet",
         )
-
-    with col2_conv:
-        csv_options = st.expander("CSV Options", expanded=False)
-        with csv_options:
-            csv_delimiter = st.selectbox(
-                "CSV delimiter", [",", ";", "\t", "|"]
-            )
-            csv_encoding = st.selectbox(
-                "CSV encoding", ["utf-8", "latin-1"]
-            )
 
     if st.button("🚀 Convert & Download", type="primary", use_container_width=True):
         try:
@@ -231,6 +230,7 @@ if st.session_state.file_bytes is not None:
                 header=header,
                 skiprows=skip_rows,
                 na_values=na_values,
+                keep_default_na=False,
                 dtype=dtype_dict or None,
                 thousands="," if thousands_sep else None,
                 decimal=decimal_sep,
@@ -246,7 +246,7 @@ if st.session_state.file_bytes is not None:
                 }
             )
 
-            # --- Preview in Convert section ---
+            # Preview in Convert section (same preview_rows, same advanced options)
             st.success(
                 f"✅ Full data loaded: {len(df_full)} rows × {len(df_full.columns)} columns"
             )
@@ -264,16 +264,11 @@ if st.session_state.file_bytes is not None:
             )
             col4_c.metric("Non-null", f"{df_full.count().sum()}")
 
-            # --- Build output for download ---
+            # Build output for download
             output = BytesIO()
 
             if output_format == "csv":
-                df_full.to_csv(
-                    output,
-                    index=False,
-                    sep=csv_delimiter,
-                    encoding=csv_encoding,
-                )
+                df_full.to_csv(output, index=False)
                 filename = (
                     st.session_state.file_info["name"].rsplit(".", 1)[0]
                     + "_converted.csv"

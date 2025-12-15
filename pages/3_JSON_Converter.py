@@ -20,7 +20,7 @@ if uploaded_file:
         
         orient = st.selectbox("JSON Orientation", ['records', 'split', 'index', 'columns', 'values'])
         
-        df = pd.read_json(uploaded_file)
+        df = pd.read_json(uploaded_file,keep_default_na=False)
         
         st.subheader("📊 Data Preview")
         st.dataframe(df.head())

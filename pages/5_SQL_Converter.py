@@ -22,7 +22,7 @@ if uploaded_file:
     try:
         import pandas as pd
         
-        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file) if uploaded_file.name.endswith(('.xlsx', '.xls')) else pd.read_json(uploaded_file)
+        df = pd.read_csv(uploaded_file,keep_default_na=False) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file,keep_default_na=False) if uploaded_file.name.endswith(('.xlsx', '.xls')) else pd.read_json(uploaded_file,keep_default_na=False)
         
         st.subheader("📊 Data Preview")
         st.dataframe(df.head())

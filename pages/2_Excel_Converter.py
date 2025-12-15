@@ -23,7 +23,7 @@ if uploaded_file:
         sheets = st.multiselect("Select sheets", excel_file.sheet_names, default=excel_file.sheet_names[:1])
         
         if sheets:
-            dfs = {sheet: pd.read_excel(uploaded_file, sheet_name=sheet) for sheet in sheets}
+            dfs = {sheet: pd.read_excel(uploaded_file, sheet_name=sheet, keep_default_na=False) for sheet in sheets}
             
             for sheet, df in dfs.items():
                 st.write(f"**{sheet}**: {len(df)} rows, {len(df.columns)} columns")

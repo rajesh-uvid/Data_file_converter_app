@@ -25,7 +25,7 @@ if uploaded_files:
             import pandas as pd
             
             for file in uploaded_files:
-                df = pd.read_csv(file) if file.name.endswith('.csv') else pd.read_excel(file)
+                df = pd.read_csv(file,keep_default_na=False) if file.name.endswith('.csv') else pd.read_excel(file,keep_default_na=False)
                 
                 if output_format == 'CSV':
                     output = df.to_csv(index=False)
